@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shareholders Performance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .summary-card {
+      border-radius: 12px;
+      background: white;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+      padding: 20px;
+      text-align: center;
+    }
+
+    .summary-card h4 {
+      font-size: 1rem;
+      color: #6c757d;
+    }
+
+    .summary-card h2 {
+      font-weight: bold;
+      font-size: 1.6rem;
+      color: #343a40;
+    }
+
+    table th, table td {
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .filter-form select,
+    .filter-form input[type="date"] {
+      font-size: 0.9rem;
+    }
+
+    .chart-container {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 30px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+    }
+
+    @media (max-width: 768px) {
+      .chart-container canvas {
+        height: 250px !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container py-4">
+  <h2 class="fw-bold text-primary mb-4">
+    <i class="bi bi-bar-chart-line-fill me-2"></i>Shareholders Performance
+  </h2>
+
+  <!-- 📦 Summary Cards -->
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="summary-card">
+        <h4>Total Orders</h4>
+        <h2>{{ total_orders }}</h2>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="summary-card">
+        <h4>Total Quantity</h4>
+        <h2>{{ "{:,}".format(total_quantity) }}</h2>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="summary-card">
+        <h4>Total Returns</h4>
+        <h2>GH₵ {{ "%.2f"|format(total_returns) }}</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📊 Table Display -->
+  <div class="table-responsive mt-4">
+    <table class="table table-striped table-bordered">
+      <thead class="table-dark">
+        <tr>
+          <th>Shareholder</th>
+          <th>Orders</th>
+          <th>Quantity</th>
+          <th>Returns (GH₵)</th>
+          <th>% of Total Returns</th>
+          <th>Share (Based on Split)</th>
+        </tr>
+      </thead>
+      <tbody id="shareholder-table-body">
+        {% for name, data in contributions.items() %}
+        <tr>
+          <td><strong>{{ name }}</strong></td>
+          <td>{{ data.orders }}</td>
+          <td>{{ "{:,}".format(data.quantity) }}</td>
+          <td>{{ "%.2f"|format(data.returns) }}</td>
+          <td>{{ "%.2f"|format(data.percentage_of_returns) }}%</td>
+          <td>
+            {% if name in shared_returns %}
+              GH₵ {{ "%.2f"|format(shared_returns[name]) }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 📈 Returns Chart -->
+  <div class="chart-container">
+    <h5 class="text-center text-muted mb-3">Returns per Shareholder</h5>
+    <canvas id="returnsChart" height="100"></canvas>
+  </div>
+
+  <!-- 📋 Filter Form -->
+  <form method="get" action="/shareholders" class="row g-2 align-items-end filter-form mb-4 mt-5">
+    <input type="hidden" name="period" value="{{ period }}">
+    <input type="hidden" name="start" value="{{ start_date }}">
+    <input type="hidden" name="end" value="{{ end_date }}">
+
+    <div class="col-md-3">
+      <label for="volume_period" class="form-label">Volume Time Frame</label>
+      <select class="form-select" name="volume_period" id="volume_period" onchange="toggleVolumeDateRange(this.value)">
+        <option value="all" {% if volume_period == 'all' %}selected{% endif %}>All Time</option>
+        <option value="today" {% if volume_period == 'today' %}selected{% endif %}>Today</option>
+        <option value="week" {% if volume_period == 'week' %}selected{% endif %}>This Week</option>
+        <option value="month" {% if volume_period == 'month' %}selected{% endif %}>This Month</option>
+        <option value="custom" {% if volume_period == 'custom' %}selected{% endif %}>Custom Range</option>
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label for="volume_start" class="form-label">Start Date</label>
+      <input type="date" class="form-control" name="volume_start" id="volume_start" value="{{ volume_start }}" {% if volume_period != 'custom' %}disabled{% endif %}>
+    </div>
+
+    <div class="col-md-3">
+      <label for="volume_end" class="form-label">End Date</label>
+      <input type="date" class="form-control" name="volume_end" id="volume_end" value="{{ volume_end }}" {% if volume_period != 'custom' %}disabled{% endif %}>
+    </div>
+
+    <div class="col-md-3">
+      <button type="submit" class="btn btn-success w-100">
+        <i class="bi bi-bar-chart-line me-1"></i>Filter Volume
+      </button>
+    </div>
+  </form>
+
+  <!-- 📦 Volume Traded Chart -->
+  <div class="chart-container mt-4">
+    <h5 class="text-center text-muted mb-3">Volume Traded per Shareholder</h5>
+    <canvas id="volumeChart" height="100"></canvas>
+  </div>
+
+  <!-- 🥧 Dual Pie Charts -->
+  <div class="row g-4 mt-4">
+    <div class="col-md-6">
+      <div class="chart-container h-100">
+        <h6 class="text-center text-muted mb-3">Returns Breakdown</h6>
+        <canvas id="pieChartReturns" height="200"></canvas>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="chart-container h-100">
+        <h6 class="text-center text-muted mb-3">Volume Breakdown</h6>
+        <canvas id="pieChartVolume" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 📦 JSON Data -->
+<script id="contribution-data" type="application/json">
+  {{ contributions | tojson }}
+</script>
+<script id="volume-data" type="application/json">
+  {{ volume_data | tojson }}
+</script>
+
+<!-- ✅ Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  // 🎯 Parse Contribution Data
+  const rawJson = document.getElementById('contribution-data').textContent;
+  const contributionData = JSON.parse(rawJson);
+  const labels = Object.keys(contributionData);
+  const returnsValues = labels.map(name => contributionData[name].returns);
+  const totalReturns = returnsValues.reduce((a, b) => a + b, 0);
+
+  // 🎯 Parse Volume Data
+  const volumeRaw = document.getElementById('volume-data').textContent;
+  const volumeData = JSON.parse(volumeRaw);
+  const volumeLabels = Object.keys(volumeData);
+  const volumeValues = volumeLabels.map(name => volumeData[name]);
+  const totalVolume = volumeValues.reduce((a, b) => a + b, 0);
+
+  // 🎨 Color Palette
+  const chartColors = ['#0d6efd', '#20c997', '#ffc107', '#fd7e14', '#6f42c1', '#d63384', '#198754'];
+
+  // 📊 Bar Chart - Returns
+  new Chart(document.getElementById('returnsChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Returns (GH₵)',
+        data: returnsValues,
+        backgroundColor: chartColors
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: context => 'GH₵ ' + context.parsed.y.toFixed(2)
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: value => 'GH₵ ' + value
+          }
+        }
+      }
+    }
+  });
+
+  // 📊 Bar Chart - Volume
+  new Chart(document.getElementById('volumeChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: volumeLabels,
+      datasets: [{
+        label: 'Volume Traded (Quantity)',
+        data: volumeValues,
+        backgroundColor: chartColors
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: context => context.parsed.y + ' units'
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // 🥧 Pie Chart - Returns Breakdown
+  new Chart(document.getElementById('pieChartReturns').getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: returnsValues,
+        backgroundColor: chartColors
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: context => {
+              const value = context.parsed;
+              const percent = ((value / totalReturns) * 100).toFixed(2);
+              return `${context.label}: GH₵ ${value.toFixed(2)} (${percent}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // 🥧 Pie Chart - Volume Breakdown
+  new Chart(document.getElementById('pieChartVolume').getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: volumeLabels,
+      datasets: [{
+        data: volumeValues,
+        backgroundColor: chartColors
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: context => {
+              const value = context.parsed;
+              const percent = ((value / totalVolume) * 100).toFixed(2);
+              return `${context.label}: ${value} units (${percent}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+</script>
+
+<!-- 🧠 Filter Date Toggle -->
+<script>
+  function toggleDateRange(val) {
+    const start = document.getElementById('start');
+    const end = document.getElementById('end');
+    if (val === 'custom') {
+      start.removeAttribute('disabled');
+      end.removeAttribute('disabled');
+    } else {
+      start.setAttribute('disabled', 'true');
+      end.setAttribute('disabled', 'true');
+    }
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    const period = document.getElementById('period');
+    if (period) toggleDateRange(period.value);
+  });
+</script>
+
+<!-- 📅 Volume Filter Toggle -->
+<script>
+  function toggleVolumeDateRange(val) {
+    const start = document.getElementById('volume_start');
+    const end = document.getElementById('volume_end');
+    if (val === 'custom') {
+      start.removeAttribute('disabled');
+      end.removeAttribute('disabled');
+    } else {
+      start.setAttribute('disabled', 'true');
+      end.setAttribute('disabled', 'true');
+    }
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    toggleVolumeDateRange(document.getElementById('volume_period').value);
+  });
+</script>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tax Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .summary-card {
+      border-radius: 10px;
+      background: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      padding: 20px;
+      text-align: center;
+    }
+    .summary-card h4 {
+      font-size: 1rem;
+      color: #6c757d;
+    }
+    .summary-card h2 {
+      font-weight: bold;
+      font-size: 1.5rem;
+      color: #198754;
+    }
+    #other-type-input {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="text-primary"><i class="bi bi-cash-coin me-2"></i>Tax Management</h3>
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTaxModal">
+      <i class="bi bi-plus-circle me-1"></i>Add Tax
+    </button>
+  </div>
+
+  <!-- 💰 Total Tax Summary -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="summary-card">
+        <h4>Total Tax Paid</h4>
+        <h2>GH₵ {{ '%.2f' | format(total_tax) }}</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📊 Line Chart -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h6 class="text-muted text-center">Payment Trends</h6>
+      <canvas id="taxTrendChart" height="80"></canvas>
+    </div>
+  </div>
+
+  <!-- 📋 Tax Table -->
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Type</th>
+          <th>Amount (GH₵)</th>
+          <th>Payment Date</th>
+          <th>Reference</th>
+          <th>Paid By</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tax in taxes %}
+        <tr>
+          <td>{{ tax.type }}</td>
+          <td>GH₵ {{ "%.2f"|format(tax.amount) }}</td>
+          <td>{{ tax.payment_date.strftime('%Y-%m-%d') }}</td>
+          <td>{{ tax.reference }}</td>
+          <td>{{ tax.paid_by }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ➕ Add Tax Modal -->
+<div class="modal fade" id="addTaxModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form id="tax-form" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Tax Record</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body row g-2">
+        <div class="col-12">
+          <label class="form-label">Type of Tax</label>
+          <select class="form-select" name="type" id="type-select" required>
+            <option value="">-- Select --</option>
+            <option>Income Tax</option>
+            <option>VAT</option>
+            <option>SSNIT</option>
+            <option>Corporate Tax</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="col-12" id="other-type-input">
+          <label class="form-label">Enter Custom Tax Type</label>
+          <input type="text" class="form-control" id="custom-type-input" placeholder="e.g. Local Levy">
+        </div>
+
+        <div class="col-6">
+          <label class="form-label">Amount (GH₵)</label>
+          <input type="number" step="0.01" class="form-control" name="amount" required>
+        </div>
+        <div class="col-6">
+          <label class="form-label">Payment Date</label>
+          <input type="date" class="form-control" name="payment_date" required>
+        </div>
+        <div class="col-6">
+          <label class="form-label">Reference / Proof</label>
+          <input type="text" class="form-control" name="reference">
+        </div>
+        <div class="col-6">
+          <label class="form-label">Paid By</label>
+          <input type="text" class="form-control" name="paid_by" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" type="submit">Add Tax</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Inject trend data -->
+<script id="trend-data" type="application/json">
+  {{ trend_data | tojson }}
+</script>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  // Chart.js
+  const trendRaw = document.getElementById("trend-data").textContent;
+  const trendObj = JSON.parse(trendRaw);
+  const labels = Object.keys(trendObj);
+  const values = Object.values(trendObj);
+
+  new Chart(document.getElementById('taxTrendChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Tax Paid (GH₵)',
+        data: values,
+        borderColor: '#0d6efd',
+        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointBackgroundColor: '#0d6efd'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: ctx => 'GH₵ ' + ctx.parsed.y.toFixed(2)
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: value => 'GH₵ ' + value
+          }
+        }
+      }
+    }
+  });
+
+  // Toggle "Other" input
+  document.getElementById("type-select").addEventListener("change", function () {
+    const isOther = this.value.toLowerCase() === "other";
+    document.getElementById("other-type-input").style.display = isOther ? "block" : "none";
+  });
+
+  // AJAX submit with custom type override
+  document.getElementById("tax-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+
+    // If "Other", override type with custom input
+    const typeSelect = document.getElementById("type-select");
+    if (typeSelect.value.toLowerCase() === "other") {
+      formData.set("type", document.getElementById("custom-type-input").value.trim());
+    }
+
+    fetch("/tax/add", {
+      method: "POST",
+      body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "success") {
+        // Hide modal and backdrop
+        const modalEl = document.getElementById("addTaxModal");
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        modalInstance.hide();
+        document.body.classList.remove("modal-open");
+        document.querySelectorAll(".modal-backdrop").forEach(el => el.remove());
+
+        loadContent("/tax"); // reload content area
+      } else {
+        alert("Error: " + data.message);
+      }
+    })
+    .catch(err => {
+      alert("Submission failed.");
+      console.error(err);
+    });
+  });
+</script>
+</body>
+</html>

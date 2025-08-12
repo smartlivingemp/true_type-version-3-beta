@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orders</title>
+
+  <!-- ✅ Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- ✅ Select2 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+  <!-- ✅ jQuery (MUST come before Select2 JS) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <!-- ✅ Select2 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+  <!-- ✅ Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+
+<body>
+  
+<h4 class="mb-4">Pending Orders</h4>
+<div id="order-alert"></div>
+
+{% if orders %}
+  {% for order in orders %}
+    {% set filled = order.p_bdc_omc and order.s_bdc_omc and order.margin and order.total_debt %}
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+          <div class="d-inline-flex align-items-center text-decoration-none">
+            {% if order.client_image_url %}
+              <img src="{{ order.client_image_url }}" alt="Client Image" class="rounded-circle me-2" width="32" height="32">
+            {% else %}
+              <div class="rounded-circle bg-secondary me-2" style="width:32px; height:32px;"></div>
+            {% endif %}
+            <strong>{{ order.client_name or 'Client' }} ({{ order.client_id }})</strong>
+          </div>
+          {{ order.product }} | {{ order.quantity }} Liters | {{ order.date or '' }}
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#detailsModal{{ order._id }}">
+          View Details
+        </button>
+      </div>
+      <div class="card-body">
+        <form method="POST"
+              action="/orders/update/{{ order._id }}"
+              class="row g-3 order-update-form"
+              data-id="{{ order._id }}">
+              
+<div class="col-md-6">
+  <label class="form-label">Shareholder</label>
+  <select name="shareholder" class="form-select" required>
+    <option value="">Select Shareholder</option>
+    <option value="Rex" {% if order.shareholder == 'Rex' %}selected{% endif %}>Rex</option>
+    <option value="Simon" {% if order.shareholder == 'Simon' %}selected{% endif %}>Simon</option>
+    <option value="Paul" {% if order.shareholder == 'Paul' %}selected{% endif %}>Paul</option>
+  </select>
+</div>
+
+         <div class="col-md-4">
+  <label class="form-label">OMC</label>
+  <select name="omc" class="form-control omc-select" required>
+    <option value="">Select OMC</option>
+    {% set omcs = [
+      "AEGIS HUILE COMPANY LIMITED", "AGAPET LIMITED", "AGETHA ENERGY LIMITED", "AI ENERGY & PETROLEUM LIMITED",
+      "AKARA ENERGY LIMITED", "ALINCO OIL COMPANY LIMITED", "ALIVE GAS SERVICES LIMITED",
+      "ALLIED OIL COMPANY LIMITED", "AMDAWAY OIL COMPANY LIMITED", "AMINASER OIL COMPANY LIMITED",
+      "AMINSO ENERGY LIMITED", "ANASSET COMPANY LIMITED", "ANDEV COMPANY LIMITED", "ANNANDALE GHANA LIMITED",
+      "AP OIL & GAS GHANA LIMITED", "APRIL-OIL GHANA LTD", "BAFFOUR GAS COMPANY LIMITED", "BEAP ENERGY GHANA LIMITED",
+      "BELLO PETROLEUM LIMITED", "BENAB OIL COMPANY LIMITED", "BF PETROLEUM LIMITED", "BG PETROLEUM LIMITED",
+      "BIGEN PETROLEUM LIMITED", "BLANKO OIL COMPANY LIMITED", "BLOOM PETROLEUM LIMITED",
+      "BREEDLOVE COMPANY LIMITED", "BRENT PETROLEUM LIMITED", "BROGAN ENERGY LIMITED", "BUFFALO OIL LIMITED",
+      "CASH OIL COMPANY LIMITED", "CD LOW PRICE MASTER LIMITED", "CENT EASTERN GAS LIMITED",
+      "CENTRAL BRENT PETROLEUM LIMITED", "CHAMPION OIL CO. LTD", "CIGO ENERGY LIMITED", "COEGAN GHANA LIMITED",
+      "COLONY ENERGY LTD", "COMPASS OLEUM LIMITED", "CONCORD OIL LIMITED", "COST ENERGY LIMITED",
+      "CROWN PETROLEUM GH. LTD", "DA OIL COMPANY LIMITED", "DABEMENS LTD", "DAVIS PETROLEUM COMPANY LIMITED",
+      "DEJON JONES LIMITED", "DENZ ENERGY LIMITED", "DESERT OIL GHANA LIMITED", "DUKES PETROLEUM LIMITED",
+      "EARTH ENERGY LIMITED", "EDEN PETROLEUM LIMITED", "E-HAN GROUP LTD", "ENERGETIC PETROLEUM LIMITED COMPANY",
+      "ENGEN GHANA LTD", "ESSENCE ENERGY COMPANY LIMITED", "EV. OIL COMPANY LIMITED",
+      "E-WINDSTAR PETROLEUM ENERGY LIMITED", "EX OIL LIMITED", "EXCEL OIL CO. LTD", "EXPRESS PETROLEUM LIMITED",
+      "EZA PETROLEUM GHANA LIMITED", "FAMOUS ENERGY LIMITED", "FINEST OIL COMPANY LIMITED", "FIRST GAS CO. LTD.",
+      "FRAGA OIL GH. LTD", "FRIMPS OIL CO. LTD", "FRONTIER OIL GHANA LIMITED", "FUELIT ENERGIES LIMITED",
+      "GAB ENERGY LIMITED", "GAMMA PETROLEUM & ENERGY SERVICES LTD", "GASO PETROLEUM LIMITED",
+      "GAT OIL COMPANY LIMITED", "GB OIL LIMITED", "GLOBAL STANDARD PETROLEUM LIMITED", "GLORY OIL CO. LTD",
+      "GO-GAS VENTURES LIMITED", "GOIL PLC", "GOODNESS ENERGY LIMITED", "GOWELL ENERGY LIMITED", "GREEN GG7 LTD",
+      "GREENWORLD OIL SERVICES LIMITED", "GRID PETROLEUM GHANA LIMITED", "GROUPE TRANSAFRICANA LIMITED",
+      "GULF ENERGY GHANA LIMITED", "HENOS ENERGY LIMITED", "HILLS OIL MARKETING COMPANY LIMITED",
+      "HUMANO ENERGY LIMITED", "HUSS PETROLEUM LIMITED", "IBM PETROLEUM LIMITED", "ICON ENERGY LIMITED",
+      "INFIN GHANA LIMITED", "IZ SALSABILLA COMPANY LIMITED", "JANDA GHANA LIMITED", "JD- LINK OIL COMPANY LIMITED",
+      "JET PETROLEUM SERVICES LTD", "JO & JU ENERGY LIMITED", "JOEKONA COMPANY LIMITED", "JONES ENERGY LIMITED",
+      "JP TRUSTEES LIMITED", "JUSBRO PETROLEUM CO. LTD", "KABORE OIL LIMITED",
+      "KAN ROYAL SERVICE STATION & TRADING LIMITED", "KAYSENS LTD", "KI ENERGY LIMITED", "KINGS ENERGY LIMITED",
+      "KINGSPERP OIL LIMITED", "KOANTWI COMPANY LIMITED", "KTC ENERGY LIMITED",
+      "L. LINK PETROLEUM COMPANY LIMITED", "LA CLEM GHANA LIMITED", "LAMBARK GAS COMPANY LIMITED",
+      "LAMININ BEE VENTURES LIMITED", "LIBERTY PETROLEUM LIMITED", "LIFE ENERGY COMPANY LIMITED",
+      "LIFE PETROLEUM COMPANY LIMITED", "LISS PETROLEUM LIMITED", "LONA PETROLEUM LIMITED",
+      "LONESTAR GAS COMPANY LIMITED", "LOUIS GAS COMPANY LIMITED", "LUCKY OIL CO. LTD", "MANBAH GAS COMPANY LIMITED",
+      "MAXX ENERGY LIMITED", "MAXX GAS LIMITED", "MAXXON PETROLEUM LIMITED", "MDS EXPRESS OIL & GAS LTD",
+      "MERCY OIL MARKETING COMPANY LIMITED", "MIDAS OIL & GAS LIMITED", "MIGHTY GAS COMPANY LIMITED",
+      "MM ENERGY LIMITED", "MOARI OIL COMPANY LIMITED", "MOBIK ENERGY LIMITED", "MORE FUEL LTD",
+      "MUNA ENERGY LIMITED", "N3 LIMITED", "NAAGAMNI GHANA LTD", "NADDIF COMPANY LIMITED",
+      "NASONA OIL COMPANY LIMITED", "NEXT PETROLEUM LIMITED", "NEXTBONS GAS LIMITED",
+      "NICK PETROLEUM GHANA LIMITED", "NKA ENERGY LIMITED", "NORGAZ PETROLEUM LIMITED", "NUJENIX COMPANY LIMITED",
+      "NURU OIL COMPANY LIMITED", "OCEAN OIL COMPANY LIMITED", "OIL FAST GHANA LTD", "OIL-SPACE GHANA LIMITED",
+      "ONYXMA ENERGY LIMITED", "P. K OIL & GAS COMPANY LTD", "PACIFIC OIL GHANA LIMITED",
+      "PATRICK K.A BONNEY & CO. LIMITED", "PETRO SANKOFA LIMITED", "PETROCELL LTD", "PETROGY LIMITED",
+      "PETROL XP GHANA LIMITED", "PETROLAND LIMITED", "PETRONAX ENERGY LIMITED",
+      "PETROSOL PLATINUM ENERGY LIMITED.", "PLUS ENERGY LIMITED", "POWER FUEL DISTRIBUTION COMPANY LIMITED",
+      "PRINCE ENERGY LIMITED", "PUMA ENERGY DISTRIBUTION GHANA LIMITED", "QUANTUM PETROLEUM LIMITED",
+      "R&P OIL COMPANY LIMITED", "RADIANCE PETROLEUM LIMITED", "RAJIP OIL COMPANY LTD", "RAZs OIL GHANA LIMITED",
+      "READY OIL LIMITED", "REFUEL ENERGY LTD", "RELIANCE OIL LIMITED", "RESTOL ENERGIES LTD",
+      "RIEMA COMPANY LIMITED", "RIK ENERGY LIMITED", "RODO OIL LIMITED", "ROOTSENAF GAS COMPANY LIMITED",
+      "ROYAL ENERGY COMPANY LIMITED", "RUNEL OIL LIMITED", "S.L. ENERGY LIMITED", "SAC ENERGY LIMITED COMPANY",
+      "SAF HOPE COMPANY LTD", "SAMA OIL COMPANY LIMITED", "SANTOL ENERGY LIMITED", "SAP OIL LIMITED",
+      "SAWADIGO OIL COMPANY LIMITED", "SAWIZ PETROLEUM COMPANY LIMITED", "SAYON ENERGY COMPANY LIMITED",
+      "SEAM OIL COMPANY LIMITED", "SEMANHYIA OIL LIMITED", "SHAKAINAH VENTURES LIMITED",
+      "SHELLEYCO PETROLEUM LIMITED", "SIGNAL OIL LIMITED", "SMART & PARTNERS LIMITED", "SO ENERGY GH LIMITED",
+      "SONNIDOM  LIMITED", "SOTEI ENERGY LIMITED", "SPIRITS PETROLEUM LIMITED", "STAR OIL CO. LTD",
+      "STRATEGIC ENERGIES LIMITED", "SUPERIOR OIL COMPANY LTD.", "TEL ENERGY LIMITED", "TELIOS ENERGY LIMITED",
+      "THOMHCOF ENERGY LIMITED", "TOP OIL COMPANY LIMITED", "TORRID GLOBAL COMPANY LIMITED",
+      "TOTALENERGIES MARKETING GHANA PLC", "TRADE CROSS LIMITED", "TRINITY OIL COMPANY LIMITED",
+      "TRIPLE A LP GAS LIMITED", "TRUGREEN PETROLEUM LTD", "T-TEKPOR ENERGY LIMITED", "UNICORN PERTROLEUM LIMITED",
+      "UNIQUE OIL COMPANY LTD.", "UNITY OIL COMPANY LIMITED", "VENUS OIL COMPANY LIMITED",
+      "VEROS PETROLEUM LIMITED", "VIGGO ENERGY LIMITED", "VIRGIN PETROLEUM LIMITED", "VIVO ENERGY GHANA PLC",
+      "WABENDSO ENERGIES LIMITED", "WEST AFRICA PETROLEUM COMPANY LIMITED (WAPCO)", "WEST PORT PETROLEUM LIMITED",
+      "WESTOL PETROLEUM LIMITED", "WHITE COAST ENERGY LTD", "WORLD GAS COMPANY LIMITED",
+      "XPRESS GAS LIMITED", "YASS PETROLEUM COMPANY LIMITED", "YOKWA GAS LIMITED", "ZEN PETROLEUM LTD"
+    ] %}
+    {% for company in omcs %}
+      <option value="{{ company }}" {% if order.omc == company %}selected{% endif %}>{{ company }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+        <div class="col-md-4">
+  <label class="form-label">BDC</label>
+  <select name="bdc" class="form-control bdc-select" required>
+    <option value="">Select BDC</option>
+    {% for b in bdcs %}
+      <option value="{{ b._id }}" {% if order.bdc_id == b._id %}selected{% endif %}>{{ b.name }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="col-md-12">
+  <label class="form-label">Payment Details</label>
+  <div class="row g-2 payment-type-group">
+    <div class="col-md-4">
+      <select class="form-select payment-type-select" name="payment_type">
+        <option value="">Select Payment Type</option>
+        <option value="Cash">Cash</option>
+        <option value="Credit">Credit</option>
+        <option value="From Account">From Account</option>
+      </select>
+    </div>
+    <div class="col-md-4 d-none payment-amount-wrapper">
+      <input type="number" step="0.01" name="payment_amount" class="form-control" placeholder="Enter Amount" />
+    </div>
+  </div>
+</div>
+
+
+          <div class="col-md-4">
+            <label class="form-label">DEPOT</label>
+            <input type="text" name="depot" class="form-control" value="{{ order.depot or '' }}" required>
+          </div>
+
+         <div class="col-md-4">
+  <label class="form-label d-flex justify-content-between">
+    P-BDC
+    <button type="button"
+            class="btn btn-sm btn-outline-secondary fetch-price-btn"
+            data-product="{{ order.product }}"
+            title="Auto-fill P/S Price">
+      Use Existing Price
+    </button>
+  </label>
+  <input type="number" step="0.01" name="p_bdc_omc" class="form-control p_bdc_input"
+         value="{{ order.p_bdc_omc or '' }}">
+</div>
+
+          <div class="col-md-4">
+            <label class="form-label">S-BDC</label>
+            <input type="number" step="0.01" name="s_bdc_omc" class="form-control s_bdc_input"
+                   value="{{ order.s_bdc_omc or '' }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">P-OMC-Tax</label>
+            <input type="number" step="0.01" name="tax" class="form-control tax_input"
+                   value="{{ order.tax or '' }}">
+          </div>
+           <div class="col-md-4">
+            <label class="form-label">S-OMC-Tax</label>
+            <input type="number" step="0.01" name="tax" class="form-control tax_input"
+                   value="{{ order.tax or '' }}">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Margin</label>
+            <input type="number" step="0.01" name="margin" class="form-control margin_input"
+                   value="{{ order.margin or '' }}" readonly>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Total Debt</label>
+            <input type="number" step="0.01" name="total_debt" class="form-control total_debt_input"
+                   value="{{ order.total_debt or '' }}" readonly>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Due Date</label>
+            <input type="date" name="due_date" class="form-control"
+                   value="{{ order.due_date.strftime('%Y-%m-%d') if order.due_date else '' }}">
+          </div>
+
+          <div class="col-md-4 d-flex align-items-center">
+            <strong class="text-muted">Returns: GHS <span class="returns_display">{{ order.returns or '0.00' }}</span></strong>
+          </div>
+
+          <div class="col-md-4 d-flex align-items-end justify-content-end">
+            <button type="submit" class="btn btn-{{ 'success' if filled else 'primary' }} w-100">
+              {{ 'Approve & Update' if filled else 'Update' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- View Details Modal -->
+    <div class="modal fade" id="detailsModal{{ order._id }}" tabindex="-1" aria-labelledby="detailsModalLabel{{ order._id }}" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="detailsModalLabel{{ order._id }}">Order Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <ul class="list-group">
+              <li class="list-group-item"><strong>Product:</strong> {{ order.product or 'N/A' }}</li>
+              <li class="list-group-item"><strong>Vehicle Number:</strong> {{ order.vehicle_number or 'N/A' }}</li>
+              <li class="list-group-item"><strong>Driver's Name:</strong> {{ order.driver_name or 'N/A' }}</li>
+              <li class="list-group-item"><strong>Driver's Phone:</strong> {{ order.driver_phone or 'N/A' }}</li>
+              <li class="list-group-item"><strong>Quantity:</strong> {{ order.quantity or 'N/A' }}</li>
+              <li class="list-group-item"><strong>Region:</strong> {{ order.region or 'N/A' }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="alert alert-info">No pending orders to review.</div>
+{% endif %}
+
+<!-- Scripts -->
+<script>
+  function updateMarginAndReturns(form) {
+    const p = parseFloat(form.find('.p_bdc_input').val()) || 0;
+    const s = parseFloat(form.find('.s_bdc_input').val()) || 0;
+    const q = parseFloat(form.closest('.card').find('.card-header').text().match(/(\d+(\.\d+)?) Liters/)?.[1]) || 0;
+    const margin = (s - p).toFixed(2);
+    form.find('.margin_input').val(margin);
+    form.find('.returns_display').text((margin * q).toFixed(2));
+  }
+
+  function updateTotalDebt(form) {
+    const s = parseFloat(form.find('.s_bdc_input').val()) || 0;
+    const tax = parseFloat(form.find('.tax_input').val()) || 0;
+    const q = parseFloat(form.closest('.card').find('.card-header').text().match(/(\d+(\.\d+)?) Liters/)?.[1]) || 0;
+    const totalDebt = tax + (s * q);
+    form.find('.total_debt_input').val(totalDebt.toFixed(2));
+  }
+
+  $(document).on('submit', '.order-update-form', function (e) {
+    e.preventDefault();
+    const form = $(this);
+    const orderId = form.data('id');
+    const formData = form.serialize();
+
+    $.post(`/orders/update/${orderId}`, formData)
+      .done(function (res) {
+        $('#order-alert').html(`<div class="alert alert-success">${res.message}</div>`);
+        setTimeout(() => loadContent('/orders', 'Review Orders'), 800);
+      })
+      .fail(function (xhr) {
+        const err = xhr.responseJSON?.error || 'Failed to update order.';
+        $('#order-alert').html(`<div class="alert alert-danger">${err}</div>`);
+      });
+  });
+
+  $(document).on('input', '.p_bdc_input, .s_bdc_input, .tax_input', function () {
+    const form = $(this).closest('form');
+    updateMarginAndReturns(form);
+    updateTotalDebt(form);
+  });
+</script>
+<script>
+  $(document).ready(function () {
+    $('.omc-select, .bdc-select').each(function () {
+      const $modal = $(this).closest('.modal');
+      $(this).select2({
+        placeholder: "Select or search...",
+        dropdownParent: $modal.length ? $modal : $(document.body),
+        width: '100%'
+      });
+    });
+  });
+</script>
+<script>
+  $(document).on('change', '.payment-type-select', function () {
+  const wrapper = $(this).closest('.payment-type-group');
+  const amountWrapper = wrapper.find('.payment-amount-wrapper');
+
+  if ($(this).val()) {
+    amountWrapper.removeClass('d-none');
+  } else {
+    amountWrapper.addClass('d-none');
+    wrapper.find('input[name="payment_amount"]').val('');
+  }
+});
+
+</script>
+<script>
+  $(document).on('click', '.fetch-price-btn', function () {
+    const btn = $(this);
+    const product = btn.data('product');
+    const form = btn.closest('form');
+
+    $.get('/orders/get_product_price', { name: product })
+      .done(function (res) {
+        form.find('.p_bdc_input').val(res.p_price);
+        form.find('.s_bdc_input').val(res.s_price);
+        updateMarginAndReturns(form);
+        updateTotalDebt(form);
+      })
+      .fail(function (xhr) {
+        const err = xhr.responseJSON?.error || 'Failed to fetch price';
+        alert(err);
+      });
+  });
+</script>
+
+</body>
+</html>
